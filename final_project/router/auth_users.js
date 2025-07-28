@@ -5,35 +5,35 @@ const regd_users = express.Router();
 
 let users = [];
 
-const isValid = (username) => { //returns boolean
-  // Check if the username already exists in the users array
+const isValid = (username) => {
   return !users.some(user => user.username === username);
 }
 
-const authenticatedUser = (username, password) => { //returns boolean
-  // Check if username and password match any user in the records
+const authenticatedUser = (username, password) => {
   return users.some(user => user.username === username && user.password === password);
 }
 
 //only registered users can login
 regd_users.post("/login", (req, res) => {
-  const { username, password } = req.body;
+  const username = req.body.username;
+  const password = req.body.password;
+  // Check if username or password is missing
   if (!username || !password) {
-    return res.status(400).json({ message: "Username and password are required." });
+    return res.status(404).json({ message: "Error logging in" });
   }
 
-  if (!authenticatedUser(username, password)) {
-    return res.status(401).json({ message: "Invalid username or password." });
+  if (authenticatedUser(username, password)) {
+    
+    let accessToken = jwt.sign({
+      data: password
+    }, 'access', { expiresIn: 60 * 60 });
+    req.session.authorization = {
+      accessToken, username
+    }
+    return res.status(200).send("User successfully logged in");
+  } else {
+    return res.status(208).json({ message: "Invalid Login. Check username and password" });
   }
-
-  const accessToken = jwt.sign(
-    { username },
-    "access",
-    { expiresIn: 60 * 60 }
-  );
-
-  req.session.authorization = { accessToken };
-  return res.status(200).json({ message: "User successfully logged in" });
 });
 
 // Add a book review
